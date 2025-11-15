@@ -1,49 +1,42 @@
-from turtle import Screen
-from snake import Snake
-from food import Food
-from scoreboard import Scoreboard
-import time
-screen = Screen()
-screen.setup(width=600, height=600)
-screen.bgcolor("black")
-screen.title("My Snake Game")
-screen.tracer(0)
-x = 0
-y = 0
-segments =[]
+import requests
+from twilio.rest import Client
 
-snake = Snake()
-food = Food()
-scoreboard = Scoreboard()
+OWM_Endpoint = "https://api.openweathermap.org/data/2.5/forecast"
+api_key = "#myapikey"
 
-screen.listen()
-screen.onkey(snake.up, "Up")
-screen.onkey(snake.down, "Down")
-screen.onkey(snake.left, "Left")
-screen.onkey(snake.right, "Right")
+account_sid = "#myaccountsid"
+auth_token = "#myauthtoken"
 
-game_is_on = True
-while game_is_on:
-    screen.update()
-    time.sleep(0.1)
+parameters = {
+    "lat": 40.511036, #19.075983
+    "lon": 141.490410, #72.877655
+    "appid": api_key,
+    "cnt": 4,
+}
+response = requests.get(url=OWM_Endpoint, params=parameters)
+response.raise_for_status()
 
-    snake.move()
+weather_data = response.json()
 
-    # Detect collision with food
-    if snake.head.distance(food) < 15:
-        food.refresh()
-        snake.extend()
-        scoreboard.increase_point()
+weather_id = response.json()["list"][0]["weather"][0]["id"]
 
-    # Detect collision with wall
-    if snake.head.xcor() > 280 or snake.head.xcor() < -280 or snake.head.ycor() > 280 or snake.head.ycor() < -280:
-        game_is_on = False
-        scoreboard.game_over()
+print(weather_data)
+print(weather_id)
+will_rain = False
 
-    # Detect collision with tail
-    for segment in snake.segments[1:]:
-        if snake.head.distance(segment) < 10:
-            scoreboard.game_over()
-            game_is_on = False
+for hour_data in weather_data["list"]:
+    condition_code = hour_data["weather"][0]["id"]
+    if weather_id < 700:
+        will_rain = True
+    else:
+        print("No umbrella needed")
 
-screen.exitonclick()
+if will_rain:
+    client = Client(account_sid, auth_token)
+    message = client.messages.create(
+        messaging_service_sid='MG972d79b8ed1e95a3f1396433c20cfae6',
+        body="It's going to rain today. Remember to bring an ☂️.",
+        from_="+14066268198",
+        to="+919930340173",
+    )
+    print(message.status)
